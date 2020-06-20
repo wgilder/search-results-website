@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+        <head>
+            {% block head %}
+                <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+                <title>{% block title %}{% endblock %} - Scraping</title>
+            {% endblock %}
+        </head>
+        <body>
+            <div id="header">
+                <span class="title">
+                    <a href="/">RPA Challenges</a>
+                </span> 
+                <span class="navigation">
+                    <a href="/list">Screen Scraping</a>
+                    <a href="http://rpachallenge.com/">Input Forms</a>
+                    <a href="http://rpachallenge.com/assets/shortestPath/public/shortestpath.html">Shortest Path</a>
+                    <a href="http://rpachallenge.com/movieSearch">Movie Search</a>
+                    <a href="https://rpachallengeocr.azurewebsites.net/">Invoice Extraction</a>
+                </span>
+            </div>
+            <div id="sidebar">
+                {% block sidebar %}{% endblock %}
+            </div>
+            <div id="main">
+                <div class="content">
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
+            <div id="footer">
+                {% block footer %}
+                {% endblock %}
+            </div>
+        </body>
+</html>

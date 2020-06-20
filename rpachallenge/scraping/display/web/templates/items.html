@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Process Automation{% endblock %}
+
+{% block sidebar %}
+<div class="title"> Instructions </div>
+<div>
+    1. The goal of this challenge is to scrape results of different documentation associated with Process Automation. First,
+    the type of document must be chosen, from PDFs, PowerPoints, Word documents or Videos.
+</div>
+<div>2. When scraping the page, multiple information should be gathered. For instance, both the title and underlying URL, 
+    plus the precis and the date of the file should be captured.
+</div>
+<div>
+    3. Finally, note that pagination is a factor, as well. Multiple pages of each kind of content is available and should be
+    captured. It may make sense to limit the number of results returned, since scraping all documents of all types can take awhile.
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="tabs">
+    <ul class="active-{{ active }}">
+        <li class="all"><a href="/list?type=all">All</a></li>
+        <li class="doc"><a href="/list?type=DOC">Word Files</a></li>
+        <li class="ppt"><a href="/list?type=PPT">Presentations</a></li>
+        <li class="pdf"><a href="/list?type=PDF">PDFs</a></li>
+        <li class="vid"><a href="/list?type=VIDEO">Videos</a></li>
+    </ul>
+</div>
+    {% if items is defined %}
+<div class="items">
+        {% for item in items %}
+            {% if loop.index > 1 %}
+    <div class="separator">
+        &nbsp;
+    </div>
+            {% endif %}
+    <div class="item {{ item.getItemType().name }}">
+        <div class="header">
+            <h3 class="title">
+                <a href="{{ item.getUrl() }}">{{ item.getTitle() }}</a>
+            </h3>
+            <div class="biline">
+                <span class="type">
+                    {{ item.getItemType().name }}
+                </span>
+                <span class="dash">
+                    -
+                </span>
+                <span class="date">
+                    <span class="created">
+                        pub:
+                        {% if item.dateInvalid() %}
+                        <span class="date-undefined">undefined</span>
+                        {%else %}
+                        {{ item.getCreationDate() }}
+                        {% endif %}
+                    </span>
+            {% if item.wasModified() %}
+                    <span class="modified">
+                        (mod: {{ item.getModificationDate() }})
+                    </span>
+                </span>
+            {% endif %}
+            </div>
+        </div>
+        <div class="description">
+            {{ item.getDescription() }}
+        </div>
+    </div>
+        {% endfor %}
+</div>
+<div class="pages">
+    <ul>
+        {% for link in links %}
+          <li>
+              <a {% if link.isActive() %}href="{{ link.getUrl() }}"{% endif %}>{{ link.getText() }}</a>
+          </li>
+        {% endfor %}
+    </ul>
+</div>
+    {% else %}
+<div class="items">
+    <h1>Choose a document type to view.</h1>
+</div>
+    {% endif %}
+{% endblock %}
