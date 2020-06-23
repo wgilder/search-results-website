@@ -1,3 +1,4 @@
 flask
 confuse
 mysql-connector-python
+google-api-python-client
