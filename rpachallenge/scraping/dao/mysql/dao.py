@@ -1,11 +1,10 @@
 
 import rpachallenge.scraping.dao.items
-import confuse
 import mysql.connector
 import threading
 from rpachallenge.scraping import ItemType, Item
 
-from rpachallenge.scraping import config
+from rpachallenge.scraping import globals
 
 _ADD_ITEM_SQL = "INSERT INTO items (url, type, title, description, creationDate, modificationDate) VALUES(%s,%s,%s,%s,%s,%s)"
 _DELETE_ITEMS_BY_TYPE = "DELETE FROM items WHERE type=%s"
@@ -18,32 +17,25 @@ _GET_ITEM_COUNT_FILTERED_SQL = _GET_ITEM_COUNT_SQL + " WHERE type=%s"
 
 class MySqlItemsDao(rpachallenge.scraping.dao.items.ItemsDao):
     def __init__(self):
-        config = confuse.Configuration('RpaChallengeScraping')
-
-        self.host = config['mysql']['host'].get() if config['mysql']['host'].exists() else "localhost"
-        self.port = config['mysql']['port'].get(int) if config['mysql']['port'].exists() else 3306
-        self.user = config['mysql']['user'].get() if config['mysql']['user'].exists() else None
-        self.password = config['mysql']['password'].get() if config['mysql']['password'].exists() else None
-        self.database = config['mysql']['database'].get() if config['mysql']['database'].exists() else None
+        self.database = globals.config['mysql']['database'].get()
+        self.user = globals.config['mysql']['user'].get()
+    
+        self.host = globals.config['mysql']['host'].get() if globals.config['mysql']['host'].exists() else "localhost"
+        self.port = globals.config['mysql']['port'].get(int) if globals.config['mysql']['port'].exists() else 3306
+        self.password = globals.config['mysql']['password'].get() if globals.config['mysql']['password'].exists() else None
 
         self._connect()
 
     def _connect(self):
-        options = {}
-        if self.host:
-            options['host'] = self.host
-
-        if self.port:
-            options['port'] = self.port
-
-        if self.user:
-            options['user'] = self.user
+        options = { 
+            'host': self.host,
+            'port': self.port,
+            'user': self.user,
+            'database': self.database    
+        }
 
         if self.password:
             options['password'] = self.password
-
-        if self.database:
-            options['database'] = self.database    
 
         self._connection = mysql.connector.connect(**options)
     
@@ -102,7 +94,7 @@ class MySqlItemsDao(rpachallenge.scraping.dao.items.ItemsDao):
 
         exception = True
         try:
-            cursor.execute(_DELETE_ITEMS_BY_TYPE, itemType.name)
+            cursor.execute(_DELETE_ITEMS_BY_TYPE, [ itemType.name ])
             exception = False
         finally:
             try:

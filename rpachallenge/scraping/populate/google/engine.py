@@ -29,7 +29,7 @@ from rpachallenge.scraping import ItemType
 from rpachallenge.scraping import Item
 from dateutil.parser import parse
 import re
-import confuse
+from rpachallenge.scraping import globals
 from datetime import datetime
 
 import rpachallenge.scraping.populate.engine
@@ -67,9 +67,8 @@ class Engine(rpachallenge.scraping.populate.engine.Engine):
     def __init__(self):
         super().__init__()
 
-        config = confuse.Configuration('RpaChallengeScraping')
-        self.developerKey = config['google']['developerKey'].get()
-        self.cseID = config['google']['cseID'].get()
+        self.developerKey = globals.config['google']['developerKey'].get()
+        self.cseID = globals.config['google']['cseID'].get()
 
     def _search(self, service, fileType, offset):
         if fileType == ItemType.VIDEO:
@@ -118,7 +117,12 @@ class Engine(rpachallenge.scraping.populate.engine.Engine):
             for idx in range(min(len(res['items']), maxNum - len(results))):
                 item = res['items'][idx]
                 url = item['link']
-                title = item['title']
+
+                if 'title' in item:
+                    title = item['title']
+                else:
+                    title = url
+
                 description = item['snippet']
                 (creationDate, modificationDate) = self._getDates(item, itemType)
                 itemObject = Item(itemType, url, title, description, creationDate, modificationDate)
