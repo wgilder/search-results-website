@@ -169,7 +169,18 @@ body {
 .pages ul {
     list-style: none;
     margin: 0 auto;
-    width: 100px;
+    width: 120px;
+}
+
+.pages li a {
+    border-radius: 4px;
+    padding: 0 3px;
+    border: 1px solid grey;
+    text-decoration: none;
+}
+
+.pages li a:hover {
+    background-color: #eee;
 }
 
 .pages li {
