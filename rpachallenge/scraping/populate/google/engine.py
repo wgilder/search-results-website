@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright 2020 UiPath Inc. All Rights Reserved.
+# Copyright 2020 Walter Gildersleeve. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,8 +34,6 @@ from datetime import datetime
 
 import rpachallenge.scraping.populate.engine
 
-# _CX='003648246807547447764:vejoc3ypqqe'
-# _KEY='AIzaSyDEujTqUs6-sIDQCHxlITcT6U8oRlAFEZg'
 _DATE_ATTRIBUTES = {
     ItemType.DOC.name + "-create": "creation date",
     ItemType.DOC.name + "-modify": "last saved date",
