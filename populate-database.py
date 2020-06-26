@@ -21,9 +21,13 @@ from rpachallenge.scraping import Item, ItemType
 
 rpachallenge.scraping.globals.initialize("rpa-search-results")
 dao = MySqlItemsDao()
-engine = Engine()
 
-for itemType in ItemType:
-    dao.clear(itemType)
-    items = engine.getItems(itemType)
-    dao.addItems(items)
+try:
+    engine = Engine()
+
+    for itemType in ItemType:
+        dao.clear(itemType)
+        items = engine.getItems(itemType)
+        dao.addItems(items)
+finally:
+    dao.destroy()
