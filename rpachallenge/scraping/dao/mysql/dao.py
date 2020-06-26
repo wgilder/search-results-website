@@ -30,6 +30,20 @@ _MYSQL_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 _GET_ITEM_COUNT_SQL = "SELECT COUNT(*) FROM items"
 _GET_ITEM_COUNT_FILTERED_SQL = _GET_ITEM_COUNT_SQL + " WHERE type=%s"
 
+# Fairly quickly done database management--need to switch over to connection pooling instead,
+# or at least something more robust
+# Idea is to marry the cursor with the connection, making opening and closing them atomic
+class DatabaseContext:
+    def __init__(self, connection, cursor):
+        self.connection = connection
+        self.cursor = cursor
+
+    def close(self):
+        try:
+            self.cursor.close()
+        finally:
+            self.connection.close()
+
 class MySqlItemsDao(rpachallenge.scraping.dao.items.ItemsDao):
     def __init__(self):
         self.database = globals.config['mysql']['database'].get()
@@ -39,9 +53,10 @@ class MySqlItemsDao(rpachallenge.scraping.dao.items.ItemsDao):
         self.port = globals.config['mysql']['port'].get(int) if globals.config['mysql']['port'].exists() else 3306
         self.password = globals.config['mysql']['password'].get() if globals.config['mysql']['password'].exists() else None
 
-        self._connect()
+        #fail-fast
+        self.open_db_context().close()
 
-    def _connect(self):
+    def open_db_context(self):
         options = { 
             'host': self.host,
             'port': self.port,
@@ -52,14 +67,16 @@ class MySqlItemsDao(rpachallenge.scraping.dao.items.ItemsDao):
         if self.password:
             options['password'] = self.password
 
-        self._connection = mysql.connector.connect(**options)
+        connection = mysql.connector.connect(**options)
+        cursor = connection.cursor()
+        return DatabaseContext(connection, cursor)
     
     def addItem(self, item):
         thread = threading.local()
-        cursor = thread._current_cursor if hasattr(thread, "_current_cursor") else None
-        single_action = cursor is None
+        dbContext = thread._db_context if hasattr(thread, "_db_context") else None
+        single_action = dbContext is None
         if single_action:
-            cursor = self._connection.cursor()
+            dbContext = self.open_db_context()
 
         exception = True
         try:
@@ -71,73 +88,70 @@ class MySqlItemsDao(rpachallenge.scraping.dao.items.ItemsDao):
                 item.getUrl(), itemType.name, item.getTitle(), item.getDescription(), cd, md
             ]
 
-            cursor.execute(_ADD_ITEM_SQL, arguments)
+            dbContext.cursor.execute(_ADD_ITEM_SQL, arguments)
             if single_action:
-                self._connection.commit()
+                dbContext.connection.commit()
 
             exception = False
         finally:
             if single_action:
                 try:
                     if exception:
-                        self._connection.rollback()
+                        dbContext.connection.rollback()
                 finally:
-                    cursor.close()
+                    dbContext.close()
 
     def addItems(self, items):
         thread = threading.local()
-        thread._current_cursor = self._connection.cursor()
+        thread._db_context = self.open_db_context()
 
         exception = True
         try:
             super().addItems(items)
             exception = False
         finally:
-            cursor = thread._current_cursor
-            thread._current_cursor = None
+            dbContext = thread._db_context
+            thread._db_context = None
 
             try:
                 if exception:
-                    self._connection.rollback()
+                    dbContext.connection.rollback()
                 else:
-                    self._connection.commit()
+                    dbContext.connection.commit()
             finally:
-                cursor.close()
+                dbContext.close()
 
     def clear(self, itemType):
-        cursor = self._connection.cursor()
+        dbContext = self.open_db_context()
 
         exception = True
         try:
-            cursor.execute(_DELETE_ITEMS_BY_TYPE, [ itemType.name ])
+            dbContext.cursor.execute(_DELETE_ITEMS_BY_TYPE, [ itemType.name ])
             exception = False
         finally:
             try:
                 if exception:
-                    self._connection.rollback()
+                    dbContext.connection.rollback()
                 else:
-                    self._connection.commit()
+                    dbContext.connection.commit()
             finally:
-                cursor.close()
+                dbContext.close()
 
     def clearAll(self):
-        cursor = self._connection.cursor()
+        dbContext = self.open_db_context()
 
         exception = True
         try:
-            cursor.execute(_DELETE_ALL_ITEMS)
+            dbContext.cursor.execute(_DELETE_ALL_ITEMS)
             exception = False
         finally:
             try:
                 if exception:
-                    self._connection.rollback()
+                    dbContext.connection.rollback()
                 else:
-                    self._connection.commit()
+                    dbContext.connection.commit()
             finally:
-                cursor.close()
-
-    def destroy(self):
-        self._connection.close()
+                dbContext.close()
 
     def getItems(self, offset = 0, count = 100, itemType = None):
         args = [ count, offset ]
@@ -148,18 +162,18 @@ class MySqlItemsDao(rpachallenge.scraping.dao.items.ItemsDao):
             sql = _GET_ITEMS_SQL
 
         results = []
-        cursor = self._connection.cursor()
+        dbContext = self.open_db_context()
 
         try:
-            cursor.execute(sql, args)
+            dbContext.cursor.execute(sql, args)
 
-            for (url,itemType,title,description,creationDate,modificationDate) in cursor:
+            for (url,itemType,title,description,creationDate,modificationDate) in dbContext.cursor:
                 it = ItemType[itemType]
                 item = Item(it, url, title, description, creationDate, modificationDate)
                 results.append(item)
 
         finally:
-            cursor.close()
+            dbContext.close()
 
         return results
 
@@ -171,10 +185,10 @@ class MySqlItemsDao(rpachallenge.scraping.dao.items.ItemsDao):
             sql = _GET_ITEM_COUNT_SQL
             args = []
 
-        cursor = self._connection.cursor()
+        dbContext = self.open_db_context()
         try:
-            cursor.execute(sql, args)
-            for (count,) in cursor:
+            dbContext.cursor.execute(sql, args)
+            for (count,) in dbContext.cursor:
                 return count
         finally:
-            cursor.close()
+            dbContext.close()
