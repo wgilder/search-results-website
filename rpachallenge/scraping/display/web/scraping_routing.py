@@ -66,3 +66,12 @@ def buildLink(text, itemType, offset, count):
     url = "/list?offset={}&type={}&count={}".format(0 if offset < 0 else offset, itemType.name if itemType else "all", count)
 
     return Link(text, url)
+
+@ScrapingWebsite.route('/status', methods=['GET', 'POST'])
+def robotStatus():
+    if request.method == 'POST':
+        return render_template('robotStatus.html', message="POST")
+    elif request.method == 'GET':
+        return render_template('robotStatus.html', message="GET")
+    else:
+        return render_template('robotStatus.html', message="UNIMPLEMENTED (" + request.method + ")")
